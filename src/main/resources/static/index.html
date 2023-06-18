@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>대마챗</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f6f7f9;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #header {
+            text-align: center;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        #talk {
+            max-width: 100%;
+            width: 500px;
+            height: 60vh;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .me, .other {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+            animation: messageAnimation 0.5s ease-out;
+        }
+
+        .me {
+            align-items: flex-end;
+        }
+
+        .other {
+            align-items: flex-start;
+        }
+
+        .me span, .other span {
+            display: inline-block;
+            padding: 10px;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        .me span:first-child, .other span:first-child {
+            background: transparent;
+            color: #333;
+            padding: 0;
+            font-weight: 700;
+        }
+
+        .me span:last-child {
+            background-color: #0084FF;
+        }
+
+        .other span:last-child {
+            background-color: #44b700;
+        }
+
+        #btnLogin, #btnSend {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            background-color: #007bff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #btnLogin:hover, #btnSend:hover {
+            background-color: #0056b3;
+        }
+
+        #mid, #msg {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-width: 100%;
+            width: 500px;
+            margin-bottom: 10px;
+        }
+
+        @keyframes messageAnimation {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="header">대마챗</div>
+<input type="text" id="mid" placeholder="아이디를 입력하세요">
+<button id="btnLogin">로그인</button>
+<div id="talk"></div>
+<input type="text" id="msg" placeholder="메시지를 입력하세요">
+<button id="btnSend">전송</button>
+
+<script>
+    let ws;
+    const mid = getId('mid');
+    const btnLogin = getId('btnLogin');
+    const btnSend = getId('btnSend');
+    const talk = getId('talk');
+    const msg = getId('msg');
+
+    const data = {};
+
+    function getId(id) {
+        return document.getElementById(id);
+    }
+
+    function handleLogin() {
+        ws = new WebSocket("ws://" + location.host + "/chat");
+        ws.onmessage = function(msg) {
+            const data = JSON.parse(msg.data);
+            let css;
+
+            if (data.mid === mid.value) {
+                css = 'class=me';
+            } else {
+                css = 'class=other';
+            }
+
+            const item = `<div ${css} >
+                                    <span><b>${data.mid}</b></span> [ ${data.date} ]<br/>
+                                    <span>${data.msg}</span>
+                                    </div>`;
+
+            talk.innerHTML += item;
+            talk.scrollTop = talk.scrollHeight;
+        }
+        btnLogin.disabled = true;
+
+        // 환영 메시지 표시
+        const welcomeMsg = `${mid.value}님이 채팅방에 입장하셨습니다!`;
+        const welcomeItem = `<div class="system">${welcomeMsg}</div>`;
+        talk.innerHTML += welcomeItem;
+    }
+
+    btnLogin.addEventListener('click', handleLogin);
+
+    msg.onkeyup = function(ev) {
+        if (ev.keyCode === 13) {
+            send();
+        }
+    }
+
+    btnSend.onclick = function() {
+        send();
+    }
+
+    function send() {
+        if (msg.value.trim() !== '') {
+            data.mid = getId('mid').value;
+            data.msg = msg.value;
+            data.date = new Date().toLocaleString();
+            const temp = JSON.stringify(data);
+            ws.send(temp);
+        }
+
+        msg.value = '';
+    }
+
+    window.addEventListener('beforeunload', (event) => {
+        event.preventDefault();
+        event.returnValue = "새로고침하면 세션이 닫히고, 대화내역이 초기화 됩니다.";
+    });
+</script>
+</body>
+</html>
