@@ -1,4 +1,4 @@
-package com.study.websocket.config;
+package com.study.websocket.websocket;
 
 import org.springframework.stereotype.Service;
 
